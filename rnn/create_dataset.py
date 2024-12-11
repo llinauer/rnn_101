@@ -33,6 +33,11 @@ def main():
     # get number of samples and max sample length from args
     n_samples, max_len = sys.argv[1:]
 
+    # restrict k to maximum of 20
+    if len(max_len) >= 20:
+        print("<max_seq_length> must be <= 20")
+        sys.exit()
+
     print(f"Creating {int(n_samples)} samples of sequences between 3 and {max_len} digits")
 
     # for each sample, determine the length of the sequence (min=3, max=max_len)
