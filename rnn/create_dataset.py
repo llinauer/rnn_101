@@ -1,4 +1,4 @@
-""" Create a dataset of N sequences of number with length of up to k as inputs and
+""" Create a dataset of N sequences of digits with length of k as inputs and
     their sum as labels
     E.g. x1=12345 y1=15
          x2=44444 y2=20
@@ -27,29 +27,22 @@ def main():
 
     # check if args supplied
     if len(sys.argv) != 3:
-        print("Usage: python create_dataset.py <num_samples> <max_seq_length>")
+        print("Usage: python create_dataset.py <num_samples> <seq_length>")
         sys.exit()
 
-    # get number of samples and max sample length from args
-    n_samples, max_len = sys.argv[1:]
+    # get number of samples and sample length from args
+    n_samples, seq_len = sys.argv[1:]
 
     # restrict k to maximum of 20
-    if len(max_len) >= 20:
-        print("<max_seq_length> must be <= 20")
+    if int(seq_len) >= 20:
+        print("<seq_length> must be <= 20")
         sys.exit()
 
-    print(f"Creating {int(n_samples)} samples of sequences between 3 and {max_len} digits")
-
-    # for each sample, determine the length of the sequence (min=3, max=max_len)
-    seq_lens = np.random.randint(low=3, high=int(max_len)+1, size=int(n_samples))
-
-    # create sequences by sampling an integer between the lowest possible 3-digit number (=100)
-    # and the highest possible k-digit number of the sample (= 10^k - 1)
-    map_digits_to_numbers = np.vectorize(lambda n: 10**n)
-    max_numbers = map_digits_to_numbers(seq_lens)
+    print(f"Creating {int(n_samples)} samples of sequences with {seq_len} digits")
 
     # create n_samples numbers of pre-determined length
-    seqs = np.random.randint(low=100, high=max_numbers)
+    seqs = np.random.randint(low=10**(int(seq_len)-1) + 1, high=10**int(seq_len),
+                             size=int(n_samples))
 
     # seqs is now an array containing integers
     # to get the labels, calculate the sum of the digits of each sample
