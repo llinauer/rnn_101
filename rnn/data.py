@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset
 
 
-VOCAB_SIZE = 11
+VOCAB_SIZE = 12
 
 
 class DigitSequenceDataset(Dataset):
@@ -20,7 +20,7 @@ class DigitSequenceDataset(Dataset):
         Reads in data from a csv, yields tensors of shape (seq_len, vocab_len) as inputs
         and tensors of shape (seq_len, vocab_len) as labels
 
-        The vocab consists of 11 elements: the digits from 0-9 and an <EOS> token
+        The vocab consists of 12 elements: the digits from 0-9, an <EOS> and an <EOA> token
     """
 
     def __init__(self, csv_file_path: str) -> None:
@@ -40,8 +40,11 @@ class DigitSequenceDataset(Dataset):
         seq_list = list(map(int, list(seq)))
         label_list = list(map(int, list(label)))
 
-        # add a <EOS> token to the end of the label list to indicate, that the sequence is over
-        label_list.append(10)
+        # add a <EOS> token to the end of the seq list to indicate, that the sequence is over
+        seq_list.append(10)
+
+        # add an <EOA> token to the end of the label, to indicate that the answer is over
+        label_list.append(11)
 
         # create tensors out of seq and label lists and one-hot encode them
         seq_tensor = F.one_hot(torch.tensor(seq_list), num_classes=self.vocab_size)
