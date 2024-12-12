@@ -12,6 +12,9 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset
 
 
+VOCAB_SIZE = 11
+
+
 class DigitSequenceDataset(Dataset):
     """ DigitSequenceDataset class
         Reads in data from a csv, yields tensors of shape (seq_len, vocab_len) as inputs
@@ -22,7 +25,7 @@ class DigitSequenceDataset(Dataset):
 
     def __init__(self, csv_file_path: str) -> None:
         self.data_df = pd.read_csv(csv_file_path, names=["x", "y"], dtype=str)
-        self.vocab_size = 11
+        self.vocab_size = VOCAB_SIZE
 
     def __len__(self):
         return len(self.data_df)
@@ -44,4 +47,4 @@ class DigitSequenceDataset(Dataset):
         seq_tensor = F.one_hot(torch.tensor(seq_list), num_classes=self.vocab_size)
         label_tensor = F.one_hot(torch.tensor(label_list), num_classes=self.vocab_size)
 
-        return seq_tensor, label_tensor
+        return seq_tensor.float(), label_tensor.float()
