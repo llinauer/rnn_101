@@ -5,9 +5,11 @@ Create a custom torch Dataset for the digit sequence dataset
 """
 
 from typing import Any
+
 import pandas as pd
-from torch.utils.data import Dataset
+import torch
 import torch.nn.functional as F
+from torch.utils.data import Dataset
 
 
 class DigitSequenceDataset(Dataset):
@@ -35,8 +37,11 @@ class DigitSequenceDataset(Dataset):
         seq_list = list(map(int, list(seq)))
         label_list = list(map(int, list(label)))
 
-        seq_tensor = F.one_hot(seq_list, num_classes=self.vocab_size)
-        label_tensor = F.one_hot(label_list, num_classes=self.vocab_size)
+        # add a <EOS> token to the end of the label list to indicate, that the sequence is over
+        label_list.append(10)
 
         # create tensors out of seq and label lists and one-hot encode them
+        seq_tensor = F.one_hot(torch.tensor(seq_list), num_classes=self.vocab_size)
+        label_tensor = F.one_hot(torch.tensor(label_list), num_classes=self.vocab_size)
+
         return seq_tensor, label_tensor
