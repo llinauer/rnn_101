@@ -13,6 +13,8 @@ from torch.utils.data import Dataset
 
 
 VOCAB_SIZE = 12
+EOS_IDX = 10
+EOA_IDX = 11
 
 
 class DigitSequenceDataset(Dataset):
@@ -41,10 +43,10 @@ class DigitSequenceDataset(Dataset):
         label_list = list(map(int, list(label)))
 
         # add a <EOS> token to the end of the seq list to indicate, that the sequence is over
-        seq_list.append(10)
+        seq_list.append(EOS_IDX)
 
         # add an <EOA> token to the end of the label, to indicate that the answer is over
-        label_list.append(11)
+        label_list.append(EOA_IDX)
 
         # create tensors out of seq and label lists and one-hot encode them
         seq_tensor = F.one_hot(torch.tensor(seq_list), num_classes=self.vocab_size)
