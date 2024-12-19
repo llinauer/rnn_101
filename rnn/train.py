@@ -82,8 +82,8 @@ def check_sequence_correctness(input_sequence: torch.Tensor, answer: str) -> boo
     
     # calc sum of input_sequence tokens, ignore the EOS token
     digit_sum = input_sequence.argmax(dim=1)[:-1].sum().item()
-    answer = answer.replace(" ", "").replace("EOA", "")
-    # if the answer is just EOA, set to 0
+    answer = answer.replace(" ", "").replace("EOA", "").replace("EOS", "")
+    # if the answer is just EOA or EOS, set to 0
     if not answer:
         answer = 0
     else:
