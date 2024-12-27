@@ -91,14 +91,13 @@ def check_sequence_correctness(input_sequence: torch.Tensor, answer: str) -> boo
     return digit_sum == answer
 
 
-
 def translate_tokens(tokens: torch.Tensor) -> str:
     """ Translate the tokens back to the vocab and print
         tokens is of shape (n_tokens, d_vocab) """
 
     # convert sequence of tensor to list of integers
     digit_list = tokens.argmax(dim=1).tolist()
-    
+
     # join the list to a string
     digit_string = " ".join(map(str, digit_list))
 
@@ -106,12 +105,6 @@ def translate_tokens(tokens: torch.Tensor) -> str:
     digit_string = digit_string.replace(str(EOA_IDX), "EOA")
     digit_string = digit_string.replace(str(EOS_IDX), "EOS")
     return digit_string
-
-
-def calc_accuracy(generated_sequence, target_sequence):
-    """ Compare how good a generated sequence fits a target sequence"""
-    pass
-    
 
 
 def train(model, train_loader, val_loader, loss_func, optimizer, n_epochs, tb_logger):
