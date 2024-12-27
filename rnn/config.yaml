@@ -9,6 +9,8 @@ n_epochs: 100
 learning_rate: 1e-3
 train_split_fraction: 0.8
 batch_size: 64
+log_path: logs
+run_name: null
 
 # --- Hydra settings ---
 # Disable Hydra logging, you can leave these as default
