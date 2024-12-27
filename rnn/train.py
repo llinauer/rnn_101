@@ -24,8 +24,10 @@ class OneHotCrossEntropyLoss(nn.Module):
     """ Custom class for calculating Cross entropy with one-hot encoded targets """
     def forward(self, logits, one_hot_targets):
         log_probs = F.log_softmax(logits, dim=-1)
-        cross_entropy = -einops.einsum(log_probs, one_hot_targets,
-                                       "batch sequence vocab, batch sequence vocab -> batch sequence")
+        cross_entropy = -einops.einsum(
+            log_probs, one_hot_targets,
+            "batch sequence vocab, batch sequence vocab -> batch sequence"
+        )
         loss = cross_entropy.mean()
         return loss
 
@@ -81,7 +83,7 @@ def sample_from_rnn(model, input_sequence, max_seq_len=5):
 def check_sequence_correctness(input_sequence: torch.Tensor, answer: str) -> bool:
     """ Check if the generated answer for the input_sequence is correct
         The shape of input_sequence is (n_sequence, d_vocab) """
-    
+
     # calc sum of input_sequence tokens, ignore the EOS token
     digit_sum = input_sequence.argmax(dim=1)[:-1].sum().item()
     answer = answer.replace(" ", "").replace("EOA", "").replace("EOS", "")
@@ -142,7 +144,7 @@ def train(model, train_loader, val_loader, loss_func, optimizer, n_epochs, log_p
                 )
 
             # calculate the loss
-            # first, take the prediction of the RNN at the end of the input_sequence 
+            # first, take the prediction of the RNN at the end of the input_sequence
             # -> should be equal to the first element of the target_sequence
             loss = loss_func(input_logits[:, -2:-1, :], target_sequences[:, 0:1, :])
 
