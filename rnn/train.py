@@ -111,7 +111,8 @@ def translate_tokens(tokens: torch.Tensor) -> str:
     return digit_string
 
 
-def train(model, train_loader, val_loader, loss_func, optimizer, n_epochs, log_path, tb_logger):
+def train(model, train_loader, val_loader, loss_func, optimizer, scheduler, n_epochs, log_path,
+          tb_logger):
     """ Train function. Iterate over the batch_loader epochs times and train the model.
         Log metrics with tensorboard logger """
 
@@ -189,6 +190,15 @@ def train(model, train_loader, val_loader, loss_func, optimizer, n_epochs, log_p
             loss = loss_func(input_logits[:, -2:-1, :], target_sequences[:, 0:1, :])
             loss += loss_func(target_logits[:, :-1, :], target_sequences[:, 1:, :])
             val_loss += loss.item()
+
+        scheduler.step(val_loss)
+
+        # log the current learning reate
+        for param_group in optimizer.param_groups:
+            current_lr = param_group.get('lr', None)
+            if current_lr:
+                tb_logger.add_scalar("learning_rate", current_lr, epoch)
+                break  # Assuming all param groups have the same learning rate
 
         avg_val_loss = val_loss / len(val_loader)
         # log val loss
@@ -274,12 +284,16 @@ def main(cfg: DictConfig) -> None:
 
     # define optimizer
     optim = torch.optim.Adam(rnn.parameters(), lr=cfg.learning_rate)
+    # define lr scheduler
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optim)
 
     # use custom loss function
     loss_func = OneHotCrossEntropyLoss()
 
     # train
-    train(rnn, train_loader, val_loader, loss_func, optim, cfg.n_epochs, log_path, logger)
+    train(rnn, train_loader, val_loader, loss_func, optim, scheduler, cfg.n_epochs, log_path,
+          logger
+          )
     logger.close()
 
 
