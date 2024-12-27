@@ -181,7 +181,7 @@ def train(model, train_loader, val_loader, loss_func, optimizer, n_epochs, log_p
             target_logits, _ = model(
                 target_sequences, h_0=input_hidden_states[:, -1, :].unsqueeze(0)
                 )
-            
+
             # calculate loss like in training loop
             loss = loss_func(input_logits[:, -2:-1, :], target_sequences[:, 0:1, :])
             loss += loss_func(target_logits[:, :-1, :], target_sequences[:, 1:, :])
@@ -225,12 +225,7 @@ def train(model, train_loader, val_loader, loss_func, optimizer, n_epochs, log_p
 def main(cfg: DictConfig) -> None:
     """ Main function """
 
-    logger = SummaryWriter()
-
-    # check if log path exists, if not create it
     log_path = Path(cfg.log_path)
-    if not log_path.exists():
-        log_path.mkdir(parents=True, exist_ok=True)
 
     # check if run name was given, if not create from current time
     if not cfg.run_name:
@@ -240,6 +235,13 @@ def main(cfg: DictConfig) -> None:
 
     # create a path for each run
     log_path = log_path / run_name
+
+    # create log_path if it does not exist
+    if not log_path.exists():
+        log_path.mkdir(parents=True, exist_ok=True)
+
+    # create tensorboard logger
+    logger = SummaryWriter(log_path)
 
     # check if dataset path is provided
     if not cfg.dataset_path:
