@@ -295,7 +295,7 @@ def main(cfg: DictConfig) -> None:
     # define optimizer
     optim = torch.optim.Adam(rnn.parameters(), lr=cfg.learning_rate, weight_decay=weight_decay)
     # define lr scheduler
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optim)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optim, factor=0.5)
 
     # use custom loss function
     loss_func = OneHotCrossEntropyLoss()
