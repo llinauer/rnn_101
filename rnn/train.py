@@ -6,17 +6,18 @@ Train an RNN to predict the digit sum of a sequence
 
 import random
 from pathlib import Path
-import einops
-import torch
-from torch import nn
-import torch.nn.functional as F
-from data import VOCAB_SIZE, DigitSequenceDataset, EOS_IDX, EOA_IDX
-from torch.utils.tensorboard import SummaryWriter
-import hydra
-from omegaconf import DictConfig
-from torch.utils.data import DataLoader, random_split
-from tqdm import tqdm
 from time import gmtime, strftime
+
+import einops
+import hydra
+import torch
+import torch.nn.functional as F
+from data import EOA_IDX, EOS_IDX, VOCAB_SIZE, DigitSequenceDataset
+from omegaconf import DictConfig
+from torch import nn
+from torch.utils.data import DataLoader, random_split
+from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 
 class OneHotCrossEntropyLoss(nn.Module):
