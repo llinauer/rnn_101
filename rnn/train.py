@@ -16,6 +16,7 @@ import hydra
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
+from time import gmtime, strftime
 
 
 class OneHotCrossEntropyLoss(nn.Module):
@@ -107,11 +108,11 @@ def translate_tokens(tokens: torch.Tensor) -> str:
     return digit_string
 
 
-def train(model, train_loader, val_loader, loss_func, optimizer, n_epochs, tb_logger):
+def train(model, train_loader, val_loader, loss_func, optimizer, n_epochs, log_path, tb_logger):
     """ Train function. Iterate over the batch_loader epochs times and train the model.
         Log metrics with tensorboard logger """
 
-
+    # loop for n_epochs
     for epoch in range(n_epochs):
 
         train_loss = 0.0
@@ -125,7 +126,7 @@ def train(model, train_loader, val_loader, loss_func, optimizer, n_epochs, tb_lo
         # create progress bar out of train_loader
         train_progress_bar = tqdm(enumerate(train_loader), total=len(train_loader),
                                   desc=f"Epoch {epoch+1}/{n_epochs}")
-        
+
         for _, (input_sequences, target_sequences) in train_progress_bar:
 
             # reset gradients
@@ -158,8 +159,14 @@ def train(model, train_loader, val_loader, loss_func, optimizer, n_epochs, tb_lo
             # print running training loss
             train_progress_bar.set_postfix({"Loss": f"{loss.item():.4f}"})
 
+        avg_train_loss = train_loss / len(train_loader)
+
+        # log train loss
+        tb_logger.add_scalar('Loss/train', avg_train_loss, epoch)
+
+        # every 10 epochs, inform the user
         if epoch % 10 == 0:
-            print(f"Epoch [{epoch+1}/{n_epochs}], Average Loss: {train_loss/len(train_loader):.4f}")
+            print(f"Epoch [{epoch+1}/{n_epochs}], Average Loss: {avg_train_loss:.4f}")
 
         # validation loop, set model to eval mode
         model.eval()
@@ -180,28 +187,38 @@ def train(model, train_loader, val_loader, loss_func, optimizer, n_epochs, tb_lo
             loss += loss_func(target_logits[:, :-1, :], target_sequences[:, 1:, :])
             val_loss += loss.item()
 
-        model_performance = -val_loss / len(val_loader)
-        #if mean_val_loss > best_model_performance:
-            #print(f"New best model performance. Saving model to {log_path/'best_model.pth'}")
-            #torch.save(model.cpu().state_dict(), log_path / "best_model.pth")
+        avg_val_loss = val_loss / len(val_loader)
+        # log val loss
+        tb_logger.add_scalar("Loss/val", avg_val_loss, epoch)
 
-        if epoch % 1 == 0:
+        # check if model performance improved
+        model_performance = -avg_val_loss
+        if model_performance > best_model_performance:
+            print(f"New best model performance. Saving model to {log_path/'best_model.pth'}")
+            torch.save(model.cpu().state_dict(), log_path / "best_model.pth")
+
+        # every n epochs, sample from the RNN and check if the calculation is correct
+        if epoch % 10 == 0:
             print(f"Validation: Average Loss: {val_loss/len(val_loader):.4f}")
+
             # check current model output on a randomly sampled sequence from the validation set
             random_batch_idx = random.randint(0, len(val_loader)-1)
             random_batch = list(val_loader)[random_batch_idx][0]
             random_sample_idx = random.randint(0, len(random_batch)-1)
             random_sample = random_batch[random_sample_idx, :, :]
             generated_tokens = sample_from_rnn(model, random_sample)
-            
+
             # print the sequence and the generated tokens
             input_seq_str = translate_tokens(random_sample)
             print("Input sequence: ", input_seq_str)
             answer_str = translate_tokens(generated_tokens)
             print("Answer: ", answer_str)
-            print(check_sequence_correctness(random_sample, answer_str))
+            answer_correct = check_sequence_correctness(random_sample, answer_str)
+            print(answer_correct)
 
-
+            # log the RNN calculation to tensorboard
+            log_str = f"Input Sequence: {input_seq_str}, Answer: {answer_str} ->  {answer_correct}"
+            tb_logger.add_text("RNN output", log_str, epoch)
 
 
 @hydra.main(version_base=None, config_name="config", config_path=".")
@@ -210,15 +227,31 @@ def main(cfg: DictConfig) -> None:
 
     logger = SummaryWriter()
 
-    # check if dataset path exists and load data if it does
+    # check if log path exists, if not create it
+    log_path = Path(cfg.log_path)
+    if not log_path.exists():
+        log_path.mkdir(parents=True, exist_ok=True)
+
+    # check if run name was given, if not create from current time
+    if not cfg.run_name:
+        run_name = strftime("%Y_%m_%d_%H_%M_%S", gmtime())
+    else:
+        run_name = cfg.run_name
+
+    # create a path for each run
+    log_path = log_path / run_name
+
+    # check if dataset path is provided
     if not cfg.dataset_path:
         print("Please provide path to dataset with the 'dataset_path' argument")
         return
 
+    # check if dataset path exists
     if not Path(cfg.dataset_path).exists():
         print("Dataset at {ds_path} does not exist")
         return
-    
+
+    # load dataset
     ds = DigitSequenceDataset(cfg.dataset_path)
 
     # split dataset into training and validation
@@ -230,19 +263,19 @@ def main(cfg: DictConfig) -> None:
                               shuffle=True)
     val_loader = DataLoader(val_ds, batch_size=cfg.batch_size, num_workers=8,
                             shuffle=False)
-    
+
     # create rnn model
     rnn = DigitSumModel(VOCAB_SIZE, 128, VOCAB_SIZE)
-    
-    # define optimizer 
+
+    # define optimizer
     optim = torch.optim.Adam(rnn.parameters(), lr=cfg.learning_rate)
-    
+
     # use custom loss function
     loss_func = OneHotCrossEntropyLoss()
 
-    train(rnn, train_loader, val_loader, loss_func, optim, cfg.n_epochs, logger)
-    
-
+    # train
+    train(rnn, train_loader, val_loader, loss_func, optim, cfg.n_epochs, log_path, logger)
+    logger.close()
 
 
 if __name__ == "__main__":
