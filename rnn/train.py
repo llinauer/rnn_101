@@ -240,6 +240,16 @@ def main(cfg: DictConfig) -> None:
 
     log_path = Path(cfg.log_path)
 
+    # check if weight decay should be used
+    if cfg.weight_decay is not None:
+        try:
+            weight_decay = float(cfg.weight_decay)
+        except ValueError:
+            print("weight_decay config must be a float. Not using weight decay")
+            weight_decay = 0.
+    else:
+        weight_decay = 0.
+
     # check if run name was given, if not create from current time
     if not cfg.run_name:
         run_name = strftime("%Y_%m_%d_%H_%M_%S", gmtime())
@@ -283,7 +293,7 @@ def main(cfg: DictConfig) -> None:
     rnn = DigitSumModel(VOCAB_SIZE, 128, VOCAB_SIZE)
 
     # define optimizer
-    optim = torch.optim.Adam(rnn.parameters(), lr=cfg.learning_rate)
+    optim = torch.optim.Adam(rnn.parameters(), lr=cfg.learning_rate, weight_decay=weight_decay)
     # define lr scheduler
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optim)
 
