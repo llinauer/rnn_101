@@ -12,7 +12,7 @@ import einops
 import hydra
 import torch
 import torch.nn.functional as F
-from data import EOA_IDX, EOS_IDX, VOCAB_SIZE, DigitSequenceDataset
+from data import VOCAB_SIZE, DigitSequenceDataset
 from omegaconf import DictConfig
 from torch import nn
 from torch.utils.data import DataLoader, random_split
@@ -216,7 +216,8 @@ def main(cfg: DictConfig) -> None:
     rnn = DigitSumModel(VOCAB_SIZE, 128, VOCAB_SIZE)
 
     # define optimizer
-    optim = torch.optim.Adam(rnn.parameters(), lr=cfg.train.learning_rate, weight_decay=weight_decay)
+    optim = torch.optim.Adam(rnn.parameters(), lr=cfg.train.learning_rate,
+                             weight_decay=weight_decay)
     # define lr scheduler
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optim, factor=0.5)
 
