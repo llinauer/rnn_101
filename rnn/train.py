@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from model import DigitSumModel
-from misc import sample_from_rnn, translate_tokens
+from misc import sample_from_rnn, translate_tokens, check_sequence_correctness
 
 
 class OneHotCrossEntropyLoss(nn.Module):
@@ -32,21 +32,6 @@ class OneHotCrossEntropyLoss(nn.Module):
         )
         loss = cross_entropy.mean()
         return loss
-
-
-def check_sequence_correctness(input_sequence: torch.Tensor, answer: str) -> bool:
-    """ Check if the generated answer for the input_sequence is correct
-        The shape of input_sequence is (n_sequence, d_vocab) """
-
-    # calc sum of input_sequence tokens, ignore the EOS token
-    digit_sum = input_sequence.argmax(dim=1)[:-1].sum().item()
-    answer = answer.replace(" ", "").replace("EOA", "").replace("EOS", "")
-    # if the answer is just EOA or EOS, set to 0
-    if not answer:
-        answer = 0
-    else:
-        answer = int(answer)
-    return digit_sum == answer
 
 
 def train(model, train_loader, val_loader, loss_func, optimizer, scheduler, n_epochs, log_path,

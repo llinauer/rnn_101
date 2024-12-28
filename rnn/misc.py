@@ -56,3 +56,18 @@ def translate_tokens(tokens: torch.Tensor) -> str:
     digit_string = digit_string.replace(str(EOA_IDX), "EOA")
     digit_string = digit_string.replace(str(EOS_IDX), "EOS")
     return digit_string
+
+
+def check_sequence_correctness(input_sequence: torch.Tensor, answer: str) -> bool:
+    """ Check if the generated answer for the input_sequence is correct
+        The shape of input_sequence is (n_sequence, d_vocab) """
+
+    # calc sum of input_sequence tokens, ignore the EOS token
+    digit_sum = input_sequence.argmax(dim=1)[:-1].sum().item()
+    answer = answer.replace(" ", "").replace("EOA", "").replace("EOS", "")
+    # if the answer is just EOA or EOS, set to 0
+    if not answer:
+        answer = 0
+    else:
+        answer = int(answer)
+    return digit_sum == answer
