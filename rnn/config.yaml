@@ -13,6 +13,10 @@ train:
   run_name: null
   weight_decay: null
 
+test:
+  dataset_path: null
+  model_path: null
+
 # --- Hydra settings ---
 # Disable Hydra logging, you can leave these as default
 
