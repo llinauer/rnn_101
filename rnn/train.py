@@ -238,12 +238,12 @@ def train(model, train_loader, val_loader, loss_func, optimizer, scheduler, n_ep
 def main(cfg: DictConfig) -> None:
     """ Main function """
 
-    log_path = Path(cfg.log_path)
+    log_path = Path(cfg.train.log_path)
 
     # check if weight decay should be used
-    if cfg.weight_decay is not None:
+    if cfg.train.weight_decay is not None:
         try:
-            weight_decay = float(cfg.weight_decay)
+            weight_decay = float(cfg.train.weight_decay)
         except ValueError:
             print("weight_decay config must be a float. Not using weight decay")
             weight_decay = 0.
@@ -251,10 +251,10 @@ def main(cfg: DictConfig) -> None:
         weight_decay = 0.
 
     # check if run name was given, if not create from current time
-    if not cfg.run_name:
+    if not cfg.train.run_name:
         run_name = strftime("%Y_%m_%d_%H_%M_%S", gmtime())
     else:
-        run_name = cfg.run_name
+        run_name = cfg.train.run_name
 
     # create a path for each run
     log_path = log_path / run_name
@@ -267,33 +267,33 @@ def main(cfg: DictConfig) -> None:
     logger = SummaryWriter(log_path)
 
     # check if dataset path is provided
-    if not cfg.dataset_path:
-        print("Please provide path to dataset with the 'dataset_path' argument")
+    if not cfg.train.dataset_path:
+        print("Please provide path to dataset with the 'train.dataset_path' argument")
         return
 
     # check if dataset path exists
-    if not Path(cfg.dataset_path).exists():
+    if not Path(cfg.train.dataset_path).exists():
         print("Dataset at {ds_path} does not exist")
         return
 
     # load dataset
-    ds = DigitSequenceDataset(cfg.dataset_path)
+    ds = DigitSequenceDataset(cfg.train.dataset_path)
 
     # split dataset into training and validation
-    train_set_len = int(len(ds) * cfg.train_split_fraction)
+    train_set_len = int(len(ds) * cfg.train.train_split_fraction)
     train_ds, val_ds = random_split(ds, [train_set_len, len(ds) - train_set_len])
 
     # create dataloaders
-    train_loader = DataLoader(train_ds, batch_size=cfg.batch_size, num_workers=8,
+    train_loader = DataLoader(train_ds, batch_size=cfg.train.batch_size, num_workers=8,
                               shuffle=True)
-    val_loader = DataLoader(val_ds, batch_size=cfg.batch_size, num_workers=8,
+    val_loader = DataLoader(val_ds, batch_size=cfg.train.batch_size, num_workers=8,
                             shuffle=False)
 
     # create rnn model
     rnn = DigitSumModel(VOCAB_SIZE, 128, VOCAB_SIZE)
 
     # define optimizer
-    optim = torch.optim.Adam(rnn.parameters(), lr=cfg.learning_rate, weight_decay=weight_decay)
+    optim = torch.optim.Adam(rnn.parameters(), lr=cfg.train.learning_rate, weight_decay=weight_decay)
     # define lr scheduler
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optim, factor=0.5)
 
@@ -301,7 +301,7 @@ def main(cfg: DictConfig) -> None:
     loss_func = OneHotCrossEntropyLoss()
 
     # train
-    train(rnn, train_loader, val_loader, loss_func, optim, scheduler, cfg.n_epochs, log_path,
+    train(rnn, train_loader, val_loader, loss_func, optim, scheduler, cfg.train.n_epochs, log_path,
           logger
           )
     logger.close()
