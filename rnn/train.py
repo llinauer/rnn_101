@@ -18,6 +18,7 @@ from torch import nn
 from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+from model import DigitSumModel
 
 
 class OneHotCrossEntropyLoss(nn.Module):
@@ -30,23 +31,6 @@ class OneHotCrossEntropyLoss(nn.Module):
         )
         loss = cross_entropy.mean()
         return loss
-
-
-class DigitSumModel(nn.Module):
-    """ RNN that takes a sequence of digits as an input and predicts their sum """
-
-    def __init__(self, input_size, hidden_size, output_size):
-        super().__init__()
-
-        # define layers
-        self.rnn = nn.RNN(input_size, hidden_size, batch_first=True)
-        self.h2o = nn.Linear(hidden_size, output_size)
-
-    def forward(self, x, h_0=None):
-        hidden, _ = self.rnn(x, h_0)
-        logits = self.h2o(hidden)
-
-        return logits, hidden
 
 
 def sample_from_rnn(model, input_sequence, max_seq_len=5):
