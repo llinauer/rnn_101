@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from model import DigitSumModel
-from misc import sample_from_rnn
+from misc import sample_from_rnn, translate_tokens
 
 
 class OneHotCrossEntropyLoss(nn.Module):
@@ -47,22 +47,6 @@ def check_sequence_correctness(input_sequence: torch.Tensor, answer: str) -> boo
     else:
         answer = int(answer)
     return digit_sum == answer
-
-
-def translate_tokens(tokens: torch.Tensor) -> str:
-    """ Translate the tokens back to the vocab and print
-        tokens is of shape (n_tokens, d_vocab) """
-
-    # convert sequence of tensor to list of integers
-    digit_list = tokens.argmax(dim=1).tolist()
-
-    # join the list to a string
-    digit_string = " ".join(map(str, digit_list))
-
-    # replace 10 with EOA and 11 with EOS
-    digit_string = digit_string.replace(str(EOA_IDX), "EOA")
-    digit_string = digit_string.replace(str(EOS_IDX), "EOS")
-    return digit_string
 
 
 def train(model, train_loader, val_loader, loss_func, optimizer, scheduler, n_epochs, log_path,

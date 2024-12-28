@@ -7,7 +7,7 @@ Miscellaneous module for functions used by both train.py and test.py
 import torch
 from torch import nn
 import torch.nn.functional as F
-from data import EOA_IDX, VOCAB_SIZE
+from data import EOA_IDX, EOS_IDX, VOCAB_SIZE
 
 
 def sample_from_rnn(model: nn.Module, input_sequence: torch.Tensor,
@@ -40,3 +40,19 @@ def sample_from_rnn(model: nn.Module, input_sequence: torch.Tensor,
             break
 
     return torch.vstack(generated_tokens)
+
+
+def translate_tokens(tokens: torch.Tensor) -> str:
+    """ Translate the tokens back to the vocab and print
+        tokens is of shape (n_tokens, d_vocab) """
+
+    # convert sequence of tensor to list of integers
+    digit_list = tokens.argmax(dim=1).tolist()
+
+    # join the list to a string
+    digit_string = " ".join(map(str, digit_list))
+
+    # replace 10 with EOA and 11 with EOS
+    digit_string = digit_string.replace(str(EOA_IDX), "EOA")
+    digit_string = digit_string.replace(str(EOS_IDX), "EOS")
+    return digit_string
