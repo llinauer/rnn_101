@@ -273,7 +273,7 @@ def main(cfg: DictConfig) -> None:
 
     # check if dataset path exists
     if not Path(cfg.train.dataset_path).exists():
-        print("Dataset at {ds_path} does not exist")
+        print("Dataset at {cfg.train.dataset_path} does not exist")
         return
 
     # load dataset
