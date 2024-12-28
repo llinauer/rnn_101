@@ -36,6 +36,7 @@ def check_accuracy(model: nn.Module, dataset: DigitSequenceDataset, n_info: int 
         if i % n_info == 0:
             # print the input sequence and the generated tokens
             input_seq_str = translate_tokens(input_seq)
+            print(f"Step {i}/{len(dataset)}")
             print("Input sequence: ", input_seq_str)
             print("Answer: ", answer_str)
             print(answer_correct)
@@ -59,7 +60,7 @@ def main(cfg: DictConfig) -> None:
         return
 
     # load dataset
-    ds = DigitSequenceDataset(cfg.train.dataset_path)
+    ds = DigitSequenceDataset(cfg.test.dataset_path)
 
     # check if model path is provided
     if not cfg.test.model_path:
@@ -80,8 +81,9 @@ def main(cfg: DictConfig) -> None:
 
     # check accuracy of the model on dataset
     acc = check_accuracy(model, ds)
+    print()
     print(f"Accuracy on dataset: {cfg.test.dataset_path}")
-    print(f"{acc*100:.2f}")
+    print(f"{acc*100:.2f}%")
 
 
 if __name__ == "__main__":
