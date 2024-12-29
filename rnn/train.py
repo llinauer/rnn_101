@@ -60,12 +60,10 @@ def train(model, train_loader, val_loader, loss_func, optimizer, scheduler, n_ep
             optimizer.zero_grad()
 
             # pass input_sequences through model to get the first prediction and the hidden state
-            input_logits, input_hidden_states = model(input_sequences)
+            input_logits, input_last_hidden = model(input_sequences)
 
             # pass the target sequences through the model to get further predictions
-            target_logits, _ = model(
-                target_sequences, h_0=input_hidden_states[:, -1, :].unsqueeze(0)
-                )
+            target_logits, _ = model(target_sequences, h_0=input_last_hidden)
 
             # calculate the loss
             # first, take the prediction of the RNN at the end of the input_sequence
@@ -103,11 +101,9 @@ def train(model, train_loader, val_loader, loss_func, optimizer, scheduler, n_ep
         for _, (input_sequences, target_sequences) in val_progress_bar:
 
             # pass input_sequences and target_sequences through the model
-            input_logits, input_hidden_states = model(input_sequences)
+            input_logits, input_last_hidden = model(input_sequences)
             # pass the target sequences through the model to get further predictions
-            target_logits, _ = model(
-                target_sequences, h_0=input_hidden_states[:, -1, :].unsqueeze(0)
-                )
+            target_logits, _ = model(target_sequences, h_0=input_last_hidden)
 
             # calculate loss like in training loop
             loss = loss_func(input_logits[:, -2:-1, :], target_sequences[:, 0:1, :])
@@ -220,7 +216,7 @@ def main(cfg: DictConfig) -> None:
                             shuffle=False)
 
     # create rnn model
-    rnn = DigitSumModel(VOCAB_SIZE, 128, VOCAB_SIZE, rnn_type=model_type)
+    rnn = DigitSumModel(VOCAB_SIZE, 128, VOCAB_SIZE, model_type=model_type)
 
     # define optimizer
     optim = torch.optim.Adam(rnn.parameters(), lr=cfg.train.learning_rate,
