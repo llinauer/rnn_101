@@ -21,7 +21,7 @@ def sample_from_rnn(model: nn.Module, input_sequence: torch.Tensor,
     # process the logits of the last input, to get the next input token
     next_token = F.one_hot(next_logits[-1].argmax(), num_classes=VOCAB_SIZE).float()
     generated_tokens = [next_token]
-    hidden_states = hidden_states[-1:]
+    hidden_states = hidden_states
 
     if torch.equal(next_token, F.one_hot(torch.tensor(EOA_IDX)).float()):
         return torch.vstack(generated_tokens)
