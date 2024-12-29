@@ -10,11 +10,16 @@ from torch import nn
 class DigitSumModel(nn.Module):
     """ RNN that takes a sequence of digits as an input and predicts their sum """
 
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, input_size, hidden_size, output_size, rnn_type="rnn"):
         super().__init__()
 
+        if rnn_type == "lstm":
+            rnn_layer = nn.LSTM
+        else:
+            rnn_layer = nn.RNN
+
         # define layers
-        self.rnn = nn.RNN(input_size, hidden_size, batch_first=True)
+        self.rnn = rnn_layer(input_size, hidden_size, batch_first=True)
         self.h2o = nn.Linear(hidden_size, output_size)
 
     def forward(self, x, h_0=None):

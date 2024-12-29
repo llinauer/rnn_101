@@ -163,6 +163,13 @@ def main(cfg: DictConfig) -> None:
 
     log_path = Path(cfg.train.log_path)
 
+    # check for model type
+    if not cfg.train.model_type or not isinstance(cfg.train.model_type):
+        print("Please provide valid model type with the train.model_type argument!"
+              " Options: [rnn, lstm]")
+        return
+    model_type = cfg.train.model_type
+
     # check if weight decay should be used
     if cfg.train.weight_decay is not None:
         try:
@@ -186,9 +193,6 @@ def main(cfg: DictConfig) -> None:
     if not log_path.exists():
         log_path.mkdir(parents=True, exist_ok=True)
 
-    # create tensorboard logger
-    logger = SummaryWriter(log_path)
-
     # check if dataset path is provided
     if not cfg.train.dataset_path:
         print("Please provide path to dataset with the 'train.dataset_path' argument")
@@ -198,6 +202,9 @@ def main(cfg: DictConfig) -> None:
     if not Path(cfg.train.dataset_path).exists():
         print("Dataset at {cfg.train.dataset_path} does not exist")
         return
+
+    # create tensorboard logger
+    logger = SummaryWriter(log_path)
 
     # load dataset
     ds = DigitSequenceDataset(cfg.train.dataset_path)
@@ -213,7 +220,7 @@ def main(cfg: DictConfig) -> None:
                             shuffle=False)
 
     # create rnn model
-    rnn = DigitSumModel(VOCAB_SIZE, 128, VOCAB_SIZE)
+    rnn = DigitSumModel(VOCAB_SIZE, 128, VOCAB_SIZE, rnn_type=model_type)
 
     # define optimizer
     optim = torch.optim.Adam(rnn.parameters(), lr=cfg.train.learning_rate,

@@ -12,6 +12,7 @@ train:
   log_path: logs
   run_name: null
   weight_decay: null
+  model_type: rnn
 
 test:
   dataset_path: null
