@@ -164,7 +164,7 @@ def main(cfg: DictConfig) -> None:
     log_path = Path(cfg.train.log_path)
 
     # check for model type
-    if not cfg.train.model_type or not isinstance(cfg.train.model_type):
+    if not cfg.train.model_type or not isinstance(cfg.train.model_type, str):
         print("Please provide valid model type with the train.model_type argument!"
               " Options: [rnn, lstm]")
         return
