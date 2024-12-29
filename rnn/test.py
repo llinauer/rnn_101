@@ -49,6 +49,13 @@ def check_accuracy(model: nn.Module, dataset: DigitSequenceDataset, n_info: int 
 def main(cfg: DictConfig) -> None:
     """ main function, check configs, load model and dataset """
 
+    # check for model type
+    if not cfg.train.model_type or not isinstance(cfg.train.model_type, str):
+        print("Please provide valid model type with the train.model_type argument!"
+              " Options: [rnn, lstm]")
+        return
+    model_type = cfg.train.model_type
+
     # check if dataset path is provided
     if not cfg.test.dataset_path:
         print("Please provide path to dataset with the 'test.dataset_path' argument")
@@ -73,7 +80,7 @@ def main(cfg: DictConfig) -> None:
         return
 
     # load model
-    model = DigitSumModel(VOCAB_SIZE, 128, VOCAB_SIZE)
+    model = DigitSumModel(VOCAB_SIZE, 128, VOCAB_SIZE, model_type=model_type)
     try:
         model.load_state_dict(torch.load(cfg.test.model_path, weights_only=True))
     except:
