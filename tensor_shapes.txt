@@ -1,0 +1,45 @@
+Tensor shapes:
+---------------
+Vocab Size = 12 (0-9 + EOA + EOS) = Input size = Output size
+Hidden Size = 128
+
+All shapes assuming batch_first=True
+
+RNN:
+----
+
+Input: [Batch, Sequence, Vocab Size]
+I2H weights: 12*128
+Hidden States: [Batch, Sequence, Hidden Size]
+H2H weights: 128*128
+H2O weights: 128*12
+Output: [Batch, Sequence, Vocab Size]
+
+pytorch nn.RNN model has two outputs:
+  Hidden States: [Batch, Sequence, Hidden Size]
+  Last Hidden State: [D*num_layers, Batch, Hidden Size]
+
+The batch dimension in the last hidden state has index 1 (for some reason)
+The first dimension of the last hidden state is D (=2 for bi-directional, 1 for uni-directional) times
+the number of layers
+
+LSTM:
+-----
+Input: [Batch, Sequence, Vocab Size]
+I2H weights: 12*128*4
+Hidden States: [Batch, Sequence, Hidden Size]
+H2H weights: 4*128*128
+H2O weights: 128*12
+Output: [Batch, Sequence, Vocab Size]
+
+The LSTM has 4 times more I2H weights. This is because the input is fed not only to the LSTM
+cell input, but also to the input gate, forget gate and output gate
+The same holds true for the H2H weights. The hidden states are fed to the cell input, input gate,
+forget gate and output gate of the next time step.
+
+pytorch nn.LSTM model has three outputs:
+  Hidden States: [Batch, Sequence, Hidden Size]
+  Last Hidden State: [D*num_layers, Batch, Hidden Size]
+  Last Cell State: [D*num_layers, Batch, Hidden Size]
+
+  The LSTM additonally outputs the last cell state (c_t) 
