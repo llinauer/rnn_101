@@ -50,11 +50,11 @@ def main(cfg: DictConfig) -> None:
     """ main function, check configs, load model and dataset """
 
     # check for model type
-    if not cfg.train.model_type or not isinstance(cfg.train.model_type, str):
-        print("Please provide valid model type with the train.model_type argument!"
+    if not cfg.test.model_type or not isinstance(cfg.test.model_type, str):
+        print("Please provide valid model type with the test.model_type argument!"
               " Options: [rnn, lstm]")
         return
-    model_type = cfg.train.model_type
+    model_type = cfg.test.model_type
 
     # check if dataset path is provided
     if not cfg.test.dataset_path:
@@ -63,7 +63,7 @@ def main(cfg: DictConfig) -> None:
 
     # check if dataset path exists
     if not Path(cfg.test.dataset_path).exists():
-        print("Dataset at {cfg.test.dataset_path} does not exist")
+        print(f"Dataset at {cfg.test.dataset_path} does not exist")
         return
 
     # load dataset
@@ -76,7 +76,7 @@ def main(cfg: DictConfig) -> None:
 
     # check if model path exists
     if not Path(cfg.test.model_path).exists():
-        print("Dataset at {cfg.test.model_path} does not exist")
+        print(f"Model at {cfg.test.model_path} does not exist")
         return
 
     # load model
@@ -84,7 +84,7 @@ def main(cfg: DictConfig) -> None:
     try:
         model.load_state_dict(torch.load(cfg.test.model_path, weights_only=True))
     except:
-        print("Could not load model at path {cfg.test.model_path}")
+        print(f"Could not load model at path {cfg.test.model_path}")
 
     # check accuracy of the model on dataset
     acc = check_accuracy(model, ds)
