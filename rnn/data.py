@@ -4,17 +4,23 @@ data.py
 Create a custom torch Dataset for the digit sequence dataset
 """
 
-from typing import Any
+from typing import Any, List, Tuple, Iterator
 
 import pandas as pd
 import torch
 import torch.nn.functional as F
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, Sampler
+from random import shuffle
 
 
 VOCAB_SIZE = 12
 EOS_IDX = 10
 EOA_IDX = 11
+
+
+def get_lengths(row: pd.Series) -> Tuple[int, int]:
+    """ Get the length of the input sequence and the target sequence of a row in the dataframe """
+    return (len(row["x"]), len(row["y"]))
 
 
 class DigitSequenceDataset(Dataset):
@@ -53,3 +59,44 @@ class DigitSequenceDataset(Dataset):
         label_tensor = F.one_hot(torch.tensor(label_list), num_classes=self.vocab_size)
 
         return seq_tensor.float(), label_tensor.float()
+
+
+class EqualSequenceLengthSampler(Sampler):
+    """ Custom sampler class, to batch sequences of equal length and targets of equal length """
+
+    def __init__(self, data: Dataset) -> None:
+        """ Constructor """
+
+        # store the whole dataframe to get the total number of samples from __len__
+        self.df = data.data_df.copy()
+
+        # group the elements of the dataframe according to the length of the input as well as
+        # target sequence
+        self.df["lengths"] = self.df.apply(get_lengths, axis=1)
+        grouped_df = self.df.groupby("lengths")
+
+        # grouped_df is now grouped based on both the length of the input and the length of the
+        # target sequence
+        # e.g. if we have two samples (12345, 15) & (666, 18), the first belongs to the group
+        # (5, 2) and the second to the group (3, 2)
+        # this ensures that we can always batch together all inputs and targets of one group
+
+        # create a list of lists, where the inner lists contain the indices of the individual groups
+        self.idx_list = [group.index.tolist() for _, group in grouped_df]
+
+    def shuffle_indices(self) -> None:
+        """ Shuffle the order of groups in self.sidx_list and the order of the indices within
+            the groups """
+        for group in self.idx_list:
+            shuffle(group)
+        shuffle(self.idx_list)
+
+    def __len__(self) -> int:
+        """ Get the total number of elements in the dataframe -> needed for calling len on 
+            the dataloader """
+        return len(self.df)
+
+    def __iter__(self) -> Iterator[List[int]]:
+        # shuffle the whole data before creating an iterator
+        self.shuffle_indices()
+        return iter(self.idx_list)

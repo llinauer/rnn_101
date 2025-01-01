@@ -12,7 +12,7 @@ import einops
 import hydra
 import torch
 import torch.nn.functional as F
-from data import VOCAB_SIZE, DigitSequenceDataset
+from data import VOCAB_SIZE, DigitSequenceDataset, EqualSequenceLengthSampler
 from omegaconf import DictConfig
 from torch import nn
 from torch.utils.data import DataLoader, random_split
@@ -196,7 +196,7 @@ def main(cfg: DictConfig) -> None:
 
     # check if dataset path exists
     if not Path(cfg.train.dataset_path).exists():
-        print("Dataset at {cfg.train.dataset_path} does not exist")
+        print(f"Dataset at {cfg.train.dataset_path} does not exist")
         return
 
     # create tensorboard logger
@@ -209,11 +209,15 @@ def main(cfg: DictConfig) -> None:
     train_set_len = int(len(ds) * cfg.train.train_split_fraction)
     train_ds, val_ds = random_split(ds, [train_set_len, len(ds) - train_set_len])
 
+    # create custom sampler for equal sequence lengths in input and targets
+    train_sampler = EqualSequenceLengthSampler(train_ds)
+    val_sampler = EqualSequenceLengthSampler(val_ds)
+
     # create dataloaders
     train_loader = DataLoader(train_ds, batch_size=cfg.train.batch_size, num_workers=8,
-                              shuffle=True)
+                              sampler=train_sampler)
     val_loader = DataLoader(val_ds, batch_size=cfg.train.batch_size, num_workers=8,
-                            shuffle=False)
+                            sampler=val_sampler)
 
     # create rnn model
     rnn = DigitSumModel(VOCAB_SIZE, 128, VOCAB_SIZE, model_type=model_type)
