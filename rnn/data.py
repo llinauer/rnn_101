@@ -9,7 +9,7 @@ from typing import Any, List, Tuple, Iterator
 import pandas as pd
 import torch
 import torch.nn.functional as F
-from torch.utils.data import Dataset, Sampler
+from torch.utils.data import Dataset, Subset, Sampler
 from random import shuffle
 
 
@@ -64,11 +64,15 @@ class DigitSequenceDataset(Dataset):
 class EqualSequenceLengthSampler(Sampler):
     """ Custom sampler class, to batch sequences of equal length and targets of equal length """
 
-    def __init__(self, data: Dataset) -> None:
-        """ Constructor """
+    def __init__(self, data: Subset, shuffle=False) -> None:
+        """ Constructor. Takes in a pytorch.utils.data.Subset which corresponds to
+            either train or validation split.
+            Can choose to not shuffle the data
+        """
 
-        # store the whole dataframe to get the total number of samples from __len__
-        self.df = data.data_df.copy()
+        # store the subset of the whole dataframe, according to the train or validation split
+        self.df = data.dataset.data_df.copy().iloc[data.indices]
+        self.shuffle = shuffle
 
         # group the elements of the dataframe according to the length of the input as well as
         # target sequence
