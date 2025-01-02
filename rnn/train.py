@@ -12,7 +12,7 @@ import einops
 import hydra
 import torch
 import torch.nn.functional as F
-from data import VOCAB_SIZE, DigitSequenceDataset, EqualSequenceLengthSampler
+from data import VOCAB_SIZE, DigitSequenceDataset, EqualLengthSampler, EqualLengthBatchSampler
 from omegaconf import DictConfig
 from torch import nn
 from torch.utils.data import DataLoader, random_split
@@ -210,14 +210,16 @@ def main(cfg: DictConfig) -> None:
     train_ds, val_ds = random_split(ds, [train_set_len, len(ds) - train_set_len])
 
     # create custom sampler for equal sequence lengths in input and targets
-    train_sampler = EqualSequenceLengthSampler(train_ds)
-    val_sampler = EqualSequenceLengthSampler(val_ds)
+    train_sampler = EqualLengthSampler(train_ds, shuffle=True)
+    val_sampler = EqualLengthSampler(val_ds, shuffle=True)
+
+    # create custom batch samplers
+    train_batch_sampler = EqualLengthBatchSampler(train_sampler, cfg.train.batch_size)
+    val_batch_sampler = EqualLengthBatchSampler(val_sampler, cfg.train.batch_size)
 
     # create dataloaders
-    train_loader = DataLoader(train_ds, batch_size=cfg.train.batch_size, num_workers=8,
-                              sampler=train_sampler)
-    val_loader = DataLoader(val_ds, batch_size=cfg.train.batch_size, num_workers=8,
-                            sampler=val_sampler)
+    train_loader = DataLoader(train_ds, batch_sampler=train_batch_sampler, num_workers=8)
+    val_loader = DataLoader(val_ds, batch_sampler=val_batch_sampler, num_workers=8)
 
     # create rnn model
     rnn = DigitSumModel(VOCAB_SIZE, 128, VOCAB_SIZE, model_type=model_type)
