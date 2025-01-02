@@ -18,6 +18,7 @@ test:
   dataset_path: null
   model_path: null
   model_type: rnn
+  sequence: null
 
 # --- Hydra settings ---
 # Disable Hydra logging, you can leave these as default

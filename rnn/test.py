@@ -8,7 +8,8 @@ from pathlib import Path
 
 import hydra
 import torch
-from data import VOCAB_SIZE, DigitSequenceDataset
+import torch.nn.functional as F
+from data import VOCAB_SIZE, DigitSequenceDataset, EOS_IDX, VOCAB_SIZE
 from misc import check_sequence_correctness, sample_from_rnn, translate_tokens
 from model import DigitSumModel
 from omegaconf import DictConfig
@@ -45,6 +46,20 @@ def check_accuracy(model: nn.Module, dataset: DigitSequenceDataset, n_info: int 
     return accuracy
 
 
+def test_model_on_sequence(model: nn.Module, test_seuqence: str) -> str:
+    """ Convert the test_sequence into a tensor, pass it through the model and get the answer """
+
+    # convert the test_sequence to a tensor
+    seq_list = list(map(int, list(test_seuqence)))
+    seq_list.append(EOS_IDX)
+    seq_tensor = F.one_hot(torch.tensor(seq_list), num_classes=VOCAB_SIZE).float()
+
+    answer_seq = sample_from_rnn(model, seq_tensor)
+    answer_str = translate_tokens(answer_seq)
+    answer_correct = check_sequence_correctness(seq_tensor, answer_str)
+    return answer_str, answer_correct
+
+
 @hydra.main(version_base=None, config_name="config", config_path=".")
 def main(cfg: DictConfig) -> None:
     """ main function, check configs, load model and dataset """
@@ -56,18 +71,29 @@ def main(cfg: DictConfig) -> None:
         return
     model_type = cfg.test.model_type
 
-    # check if dataset path is provided
-    if not cfg.test.dataset_path:
-        print("Please provide path to dataset with the 'test.dataset_path' argument")
+    # check if both dataset_path and string are provided
+    if cfg.test.dataset_path is not None and cfg.test.sequence is not None:
+        print("Please provide only one of 'test.dataset_path' or 'test.sequence'")
         return
 
-    # check if dataset path exists
-    if not Path(cfg.test.dataset_path).exists():
-        print(f"Dataset at {cfg.test.dataset_path} does not exist")
+    # check if neither dataset path nor sequence is provided
+    if not cfg.test.dataset_path and not cfg.test.sequence:
+        print("Please provide one of 'test.dataset_path' or 'test.sequence' arguments")
         return
 
-    # load dataset
-    ds = DigitSequenceDataset(cfg.test.dataset_path)
+    # if only a test sequence is provided
+    if cfg.test.dataset_path is not None:
+        # check if dataset path exists
+        if not Path(cfg.test.dataset_path).exists():
+            print(f"Dataset at {cfg.test.dataset_path} does not exist")
+            return
+
+        # load dataset
+        ds = DigitSequenceDataset(cfg.test.dataset_path)
+        test_sequence = None
+    else:
+        test_sequence = str(cfg.test.sequence)
+        ds = None
 
     # check if model path is provided
     if not cfg.test.model_path:
@@ -86,11 +112,19 @@ def main(cfg: DictConfig) -> None:
     except:
         print(f"Could not load model at path {cfg.test.model_path}")
 
-    # check accuracy of the model on dataset
-    acc = check_accuracy(model, ds)
-    print()
-    print(f"Accuracy on dataset: {cfg.test.dataset_path}")
-    print(f"{acc*100:.2f}%")
+    # if a test_sequence is provided, run the model on it
+    if test_sequence is not None:
+        print()
+        print("Test model on input:")
+        print(test_sequence)
+        answer, correct = test_model_on_sequence(model, test_sequence)
+        print(f"Answer: {answer}, {correct}")
+    else:
+        # check accuracy of the model on dataset
+        acc = check_accuracy(model, ds)
+        print()
+        print(f"Accuracy on dataset: {cfg.test.dataset_path}")
+        print(f"{acc*100:.2f}%")
 
 
 if __name__ == "__main__":
