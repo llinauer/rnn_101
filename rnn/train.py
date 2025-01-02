@@ -169,6 +169,16 @@ def main(cfg: DictConfig) -> None:
 
     log_path = Path(cfg.train.log_path)
 
+    # check if hidden size is given, is an integer and not too big or too small
+    if not cfg.train.hidden_size:
+        print("No train.hidden_size argument given, using default value of 128")
+        hidden_size = 128
+
+    if not isinstance(cfg.train.hidden_size, int) or not 16 < cfg.train.hidden_size < 256:
+        print("train.hidden_size argument must be an integer between 16 and 256!")
+        return
+    hidden_size = cfg.train.hidden_size
+
     # check for model type
     if not cfg.train.model_type or not isinstance(cfg.train.model_type, str):
         print("Please provide valid model type with the train.model_type argument!"
@@ -232,7 +242,7 @@ def main(cfg: DictConfig) -> None:
     val_loader = DataLoader(val_ds, batch_sampler=val_batch_sampler, num_workers=8)
 
     # create rnn model
-    rnn = DigitSumModel(VOCAB_SIZE, 128, VOCAB_SIZE, model_type=model_type)
+    rnn = DigitSumModel(VOCAB_SIZE, hidden_size, VOCAB_SIZE, model_type=model_type)
 
     # define optimizer
     optim = torch.optim.Adam(rnn.parameters(), lr=cfg.train.learning_rate,

@@ -13,6 +13,7 @@ train:
   run_name: null
   weight_decay: null
   model_type: rnn
+  hidden_size: 128
 
 test:
   dataset_path: null
