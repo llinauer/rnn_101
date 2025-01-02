@@ -61,7 +61,7 @@ class DigitSequenceDataset(Dataset):
         return seq_tensor.float(), label_tensor.float()
 
 
-class EqualSequenceLengthSampler(Sampler):
+class EqualLengthSampler(Sampler):
     """ Custom sampler class, to batch sequences of equal length and targets of equal length """
 
     def __init__(self, data: Subset, shuffle=False) -> None:
@@ -72,6 +72,10 @@ class EqualSequenceLengthSampler(Sampler):
 
         # store the subset of the whole dataframe, according to the train or validation split
         self.df = data.dataset.data_df.copy().iloc[data.indices]
+        # reset indices, so that they are in the range [0, len(subset)]
+        self.df = self.df.reset_index()
+
+        # store other attributes
         self.shuffle = shuffle
 
         # group the elements of the dataframe according to the length of the input as well as
@@ -86,21 +90,33 @@ class EqualSequenceLengthSampler(Sampler):
         # this ensures that we can always batch together all inputs and targets of one group
 
         # create a list of lists, where the inner lists contain the indices of the individual groups
-        self.idx_list = [group.index.tolist() for _, group in grouped_df]
+        self.batch_idx_list = [group.index.tolist() for _, group in grouped_df]
+
+        # map indices to groups
+        self.idx_to_group = {}
+        for group, idx_list in enumerate(self.batch_idx_list):
+            for idx in idx_list:
+                self.idx_to_group[idx] = group
 
     def shuffle_indices(self) -> None:
-        """ Shuffle the order of groups in self.sidx_list and the order of the indices within
+        """ Shuffle the order of groups in self.batch_idx_list and the order of the indices within
             the groups """
-        for group in self.idx_list:
+
+        # check if should shuffle
+        if not self.shuffle:
+            return
+
+        for group in self.batch_idx_list:
             shuffle(group)
-        shuffle(self.idx_list)
+        shuffle(self.batch_idx_list)
 
     def __len__(self) -> int:
-        """ Get the total number of elements in the dataframe -> needed for calling len on 
-            the dataloader """
-        return len(self.df)
+        """ Get the number of groups """
+        return len(self.batch_idx_list)
 
     def __iter__(self) -> Iterator[List[int]]:
         # shuffle the whole data before creating an iterator
         self.shuffle_indices()
-        return iter(self.idx_list)
+        for idx_list in self.batch_idx_list:
+            for idx in idx_list:
+                yield idx
