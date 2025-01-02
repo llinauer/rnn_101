@@ -1,13 +1,22 @@
-""" Create a dataset of N sequences of digits with length of k as inputs and
+""" Create a dataset of all sequences of digits with length 2 to k as inputs and
     their sum as labels
-    E.g. x1=12345 y1=15
-         x2=44444 y2=20
+    E.g. x1=00 y1=0
+         x2=01 y2=1
          ...
+         xN=999..99 (k digits) yN=9*k
     Save the data in a csv file
 """
 
 import sys
-import numpy as np
+import csv
+
+
+def create_sequences_of_length_k(k: int) -> list:
+    """ Create all sequences of k digits and return them as a list """
+    sequences = []
+    for i in range(0, 10**k):
+        sequences.append(str(i).zfill(k))
+    return sequences
 
 
 def calc_digit_sum(digit_str: str) -> str:
@@ -26,33 +35,29 @@ def main():
     """ Main function, create data """
 
     # check if args supplied
-    if len(sys.argv) != 3:
-        print("Usage: python create_dataset.py <num_samples> <seq_length>")
+    if len(sys.argv) != 2:
+        print("Usage: python create_dataset.py <seq_length>")
         sys.exit()
 
     # get number of samples and sample length from args
-    n_samples, seq_len = sys.argv[1:]
+    seq_len = int(sys.argv[1])
 
-    # restrict k to maximum of 20
-    if int(seq_len) >= 20:
-        print("<seq_length> must be <= 20")
+    # restrict k to maximum of 8
+    if seq_len >= 8 or seq_len < 2:
+        print("<seq_length> must be > 2 and <= 8")
         sys.exit()
 
-    print(f"Creating {int(n_samples)} samples of sequences with {seq_len} digits")
+    print(f"Creating dataset of sequences with {seq_len} digits")
+    data = []
+    for k in range(2, seq_len+1):
+        sequences = create_sequences_of_length_k(k)
+        sums = list(map(calc_digit_sum, sequences))
+        data.extend(zip(sequences, sums))
 
-    # create n_samples numbers of pre-determined length
-    seqs = np.random.randint(low=10**(int(seq_len)-1) + 1, high=10**int(seq_len),
-                             size=int(n_samples))
-
-    # seqs is now an array containing integers
-    # to get the labels, calculate the sum of the digits of each sample
-    seqs_string = seqs.astype(str)
-    calc_digit_sum_vec = np.vectorize(calc_digit_sum)
-    labels = calc_digit_sum_vec(seqs_string)
-
-    # save the sequences and the sums in a csv file
-    combined_array = np.column_stack((seqs_string, labels))
-    np.savetxt("seq_data.csv", combined_array, delimiter=",", fmt="%s")
+    # save data to csv
+    with open("seq_data.csv", mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerows(data)
 
     print("Saved data to 'seq_data.csv'")
 
