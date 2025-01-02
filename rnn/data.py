@@ -9,7 +9,7 @@ from typing import Any, List, Tuple, Iterator
 import pandas as pd
 import torch
 import torch.nn.functional as F
-from torch.utils.data import Dataset, Subset, Sampler
+from torch.utils.data import Dataset, Subset, Sampler, BatchSampler
 from random import shuffle
 
 
@@ -120,3 +120,44 @@ class EqualLengthSampler(Sampler):
         for idx_list in self.batch_idx_list:
             for idx in idx_list:
                 yield idx
+
+
+class EqualLengthBatchSampler(BatchSampler):
+    """ Custom Batch Sampler, to pack input sequences of equal length and target sequences of
+         equal length together
+    """
+
+    def __init__(self, sampler: Sampler, batch_size: int):
+        """ Constructor """
+
+        self.sampler = sampler
+        self.batch_size = batch_size
+
+    def __iter__(self):
+        """ Create iterator. Iterate over the indices in the sampler attribute. Check
+             for indices belonging to the same group and yield batches of them .
+        """
+        batch = []
+        current_group = None
+
+        for idx in self.sampler:
+            group = self.sampler.idx_to_group[idx]
+            if current_group is None:
+                current_group = group
+
+            if group != current_group or len(batch) == self.batch_size:
+                yield batch
+                batch = []
+                current_group = group
+
+            batch.append(idx)
+
+        # yield any remaining indices
+        if batch:
+            yield batch
+
+    def __len__(self):
+        return sum(
+            (len(indices) + self.batch_size - 1) // self.batch_size
+            for indices in self.sampler.batch_idx_list
+        )
