@@ -44,6 +44,7 @@ def train(model, train_loader, val_loader, loss_func, optimizer, scheduler, n_ep
 
         train_loss = 0.0
         val_loss = 0.0
+        train_grad_norm = 0.0
         best_model_performance = -torch.inf
 
         # train loop
@@ -78,6 +79,14 @@ def train(model, train_loader, val_loader, loss_func, optimizer, scheduler, n_ep
             loss.backward()
             optimizer.step()
 
+            grad_norm = 0
+            for param in model.parameters():
+                if param.grad is not None:
+                    param_norm = param.grad.data.norm(2)  # calc L2 norm
+                    grad_norm += param_norm.item() ** 2
+            grad_norm = grad_norm ** 0.5
+            train_grad_norm += grad_norm
+
             # accumulate training loss
             train_loss += loss.item()
 
@@ -86,8 +95,9 @@ def train(model, train_loader, val_loader, loss_func, optimizer, scheduler, n_ep
 
         avg_train_loss = train_loss / len(train_loader)
 
-        # log train loss
+        # log train loss and gradient norm
         tb_logger.add_scalar('Loss/train', avg_train_loss, epoch)
+        tb_logger.add_scalar('Train grad norm', train_grad_norm / len(train_loader), epoch)
 
         # every 10 epochs, inform the user
         if epoch % 10 == 0:
@@ -228,7 +238,8 @@ def main(cfg: DictConfig) -> None:
     optim = torch.optim.Adam(rnn.parameters(), lr=cfg.train.learning_rate,
                              weight_decay=weight_decay)
     # define lr scheduler
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optim, factor=0.5)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optim, factor=0.5,
+                                                           patience=cfg.train.n_epochs // 20)
 
     # use custom loss function
     loss_func = OneHotCrossEntropyLoss()
