@@ -9,7 +9,7 @@ from pathlib import Path
 import hydra
 import torch
 import torch.nn.functional as F
-from data import VOCAB_SIZE, DigitSequenceDataset, EOS_IDX, VOCAB_SIZE
+from data import VOCAB_SIZE, DigitSequenceDataset, EOS_IDX
 from misc import check_sequence_correctness, sample_from_rnn, translate_tokens
 from model import DigitSumModel
 from omegaconf import DictConfig
