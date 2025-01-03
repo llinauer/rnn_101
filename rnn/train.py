@@ -174,7 +174,7 @@ def main(cfg: DictConfig) -> None:
         print("No train.hidden_size argument given, using default value of 128")
         hidden_size = 128
 
-    if not isinstance(cfg.train.hidden_size, int) or not 16 < cfg.train.hidden_size < 256:
+    if not isinstance(cfg.train.hidden_size, int) or not 16 <= cfg.train.hidden_size <= 256:
         print("train.hidden_size argument must be an integer between 16 and 256!")
         return
     hidden_size = cfg.train.hidden_size
