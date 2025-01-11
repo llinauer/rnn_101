@@ -9,41 +9,13 @@ from pathlib import Path
 import hydra
 import torch
 import torch.nn.functional as F
-from data import VOCAB_SIZE, DigitSequenceDataset, EOS_IDX
-from misc import check_sequence_correctness, sample_from_rnn, translate_tokens
+from misc import (check_accuracy, check_sequence_correctness, sample_from_rnn,
+                  translate_tokens)
 from model import DigitSumModel
 from omegaconf import DictConfig
 from torch import nn
 
-
-def check_accuracy(model: nn.Module, dataset: DigitSequenceDataset, n_info: int = 50) -> float:
-    """ Loop over the dataset, feed the input sequences to the model and check if it produces
-        the correct output
-    """
-
-    correct_answers = 0.
-
-    # loop over whole dataset
-    for i, (input_seq, answer_seq) in enumerate(dataset):
-        # feed input sequence into model
-        answer_seq = sample_from_rnn(model, input_seq)
-        # translate answer tokens to string
-        answer_str = translate_tokens(answer_seq)
-        # check if answer is correct
-        answer_correct = check_sequence_correctness(input_seq, answer_str)
-        correct_answers += float(answer_correct)
-
-        # for a feeling of progress, print answers every n iterations
-        if i % n_info == 0:
-            # print the input sequence and the generated tokens
-            input_seq_str = translate_tokens(input_seq)
-            print(f"Step {i}/{len(dataset)}")
-            print("Input sequence: ", input_seq_str)
-            print("Answer: ", answer_str)
-            print(answer_correct)
-
-    accuracy = correct_answers / len(dataset)
-    return accuracy
+from data import EOS_IDX, VOCAB_SIZE, DigitSequenceDataset
 
 
 def test_model_on_sequence(model: nn.Module, test_seuqence: str) -> str:
@@ -121,7 +93,7 @@ def main(cfg: DictConfig) -> None:
         print(f"Answer: {answer}, {correct}")
     else:
         # check accuracy of the model on dataset
-        acc = check_accuracy(model, ds)
+        acc = check_accuracy(model, ds, n_info=50)
         print()
         print(f"Accuracy on dataset: {cfg.test.dataset_path}")
         print(f"{acc*100:.2f}%")

@@ -4,10 +4,13 @@ misc.py
 Miscellaneous module for functions used by both train.py and test.py
 """
 
+from typing import Optional
+
 import torch
-from torch import nn
 import torch.nn.functional as F
-from data import EOA_IDX, EOS_IDX, VOCAB_SIZE
+from torch import nn
+
+from data import EOA_IDX, EOS_IDX, VOCAB_SIZE, DigitSequenceDataset
 
 
 def sample_from_rnn(model: nn.Module, input_sequence: torch.Tensor,
@@ -71,3 +74,39 @@ def check_sequence_correctness(input_sequence: torch.Tensor, answer: str) -> boo
     else:
         answer = int(answer)
     return digit_sum == answer
+
+
+def check_accuracy(model: nn.Module, dataset: DigitSequenceDataset,
+                   n_info: Optional[int] = None) -> float:
+    """ Loop over the dataset, feed the input sequences to the model and check if it produces
+        the correct output. Every n_info iterations, print a sequence and it's predictions,
+        unless n_info = None
+    """
+
+    correct_answers = 0.
+
+    # loop over whole dataset
+    for i, (input_seq, answer_seq) in enumerate(dataset):
+        # feed input sequence into model
+        answer_seq = sample_from_rnn(model, input_seq)
+        # translate answer tokens to string
+        answer_str = translate_tokens(answer_seq)
+        # check if answer is correct
+        answer_correct = check_sequence_correctness(input_seq, answer_str)
+        correct_answers += float(answer_correct)
+
+        # if n_info==None, do not print
+        if not n_info:
+            continue
+
+        # for a feeling of progress, print answers every n iterations
+        if i % n_info == 0:
+            # print the input sequence and the generated tokens
+            input_seq_str = translate_tokens(input_seq)
+            print(f"Step {i}/{len(dataset)}")
+            print("Input sequence: ", input_seq_str)
+            print("Answer: ", answer_str)
+            print(answer_correct)
+
+    accuracy = correct_answers / len(dataset)
+    return accuracy

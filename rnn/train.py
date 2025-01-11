@@ -4,7 +4,6 @@ train.py
 Train an RNN to predict the digit sum of a sequence
 """
 
-import random
 from pathlib import Path
 from time import gmtime, strftime
 
@@ -12,14 +11,16 @@ import einops
 import hydra
 import torch
 import torch.nn.functional as F
-from data import VOCAB_SIZE, DigitSequenceDataset, EqualLengthSampler, EqualLengthBatchSampler
+from misc import check_accuracy
+from model import DigitSumModel
 from omegaconf import DictConfig
 from torch import nn
 from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from model import DigitSumModel
-from misc import sample_from_rnn, translate_tokens, check_sequence_correctness
+
+from data import (VOCAB_SIZE, DigitSequenceDataset, EqualLengthBatchSampler,
+                  EqualLengthSampler)
 
 
 class OneHotCrossEntropyLoss(nn.Module):
@@ -34,8 +35,8 @@ class OneHotCrossEntropyLoss(nn.Module):
         return loss
 
 
-def train(model, train_loader, val_loader, loss_func, optimizer, scheduler, n_epochs, log_path,
-          tb_logger):
+def train(model, train_loader, val_loader, val_ds, loss_func, optimizer, scheduler, n_epochs,
+          log_path, tb_logger, n_acc=10):
     """ Train function. Iterate over the batch_loader epochs times and train the model.
         Log metrics with tensorboard logger """
 
@@ -139,28 +140,13 @@ def train(model, train_loader, val_loader, loss_func, optimizer, scheduler, n_ep
             print(f"New best model performance. Saving model to {log_path/'best_model.pth'}")
             torch.save(model.cpu().state_dict(), log_path / "best_model.pth")
 
-        # every n epochs, sample from the RNN and check if the calculation is correct
-        if epoch % 10 == 0:
+        # every n epochs, check the accuracy of the model outputs on the val dataset
+        if epoch % n_acc == 0:
             print(f"Validation: Average Loss: {val_loss/len(val_loader):.4f}")
-
-            # check current model output on a randomly sampled sequence from the validation set
-            random_batch_idx = random.randint(0, len(val_loader)-1)
-            random_batch = list(val_loader)[random_batch_idx][0]
-            random_sample_idx = random.randint(0, len(random_batch)-1)
-            random_sample = random_batch[random_sample_idx, :, :]
-            generated_tokens = sample_from_rnn(model, random_sample)
-
-            # print the sequence and the generated tokens
-            input_seq_str = translate_tokens(random_sample)
-            print("Input sequence: ", input_seq_str)
-            answer_str = translate_tokens(generated_tokens)
-            print("Answer: ", answer_str)
-            answer_correct = check_sequence_correctness(random_sample, answer_str)
-            print(answer_correct)
-
-            # log the RNN calculation to tensorboard
-            log_str = f"Input Sequence: {input_seq_str}, Answer: {answer_str} ->  {answer_correct}"
-            tb_logger.add_text("RNN output", log_str, epoch)
+            val_acc = check_accuracy(model, val_ds)
+            # log to tensorboard
+            tb_logger.add_scalar("Val accuracy", val_acc*100, epoch)
+            print(f"Validation: Accuracy: {val_acc*100:2f}")
 
 
 @hydra.main(version_base=None, config_name="config", config_path=".")
@@ -255,9 +241,8 @@ def main(cfg: DictConfig) -> None:
     loss_func = OneHotCrossEntropyLoss()
 
     # train
-    train(rnn, train_loader, val_loader, loss_func, optim, scheduler, cfg.train.n_epochs, log_path,
-          logger
-          )
+    train(rnn, train_loader, val_loader, val_ds, loss_func, optim, scheduler, cfg.train.n_epochs,
+          log_path, logger)
     logger.close()
 
 
