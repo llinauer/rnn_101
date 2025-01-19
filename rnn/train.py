@@ -18,7 +18,7 @@ from torch import nn
 from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-
+from collections import deque
 from data import (VOCAB_SIZE, DigitSequenceDataset, EqualLengthBatchSampler,
                   EqualLengthSampler)
 
@@ -36,17 +36,18 @@ class OneHotCrossEntropyLoss(nn.Module):
 
 
 def train(model, train_loader, val_loader, val_ds, loss_func, optimizer, scheduler, n_epochs,
-          log_path, tb_logger, n_acc=10):
+          log_path, tb_logger, n_acc=5):
     """ Train function. Iterate over the batch_loader epochs times and train the model.
         Log metrics with tensorboard logger """
 
     # loop for n_epochs
     for epoch in range(n_epochs):
 
-        train_loss = 0.0
-        val_loss = 0.0
-        train_grad_norm = 0.0
-        best_model_performance = -torch.inf
+        train_loss = 0.
+        val_loss = 0.
+        train_grad_norm = 0.
+        best_model_perf = 0.
+        model_perf_running_mean = deque(maxlen=5)
 
         # train loop
         # move model to appropriate device and set to train mode
@@ -134,19 +135,22 @@ def train(model, train_loader, val_loader, val_ds, loss_func, optimizer, schedul
         # log val loss
         tb_logger.add_scalar("Loss/val", avg_val_loss, epoch)
 
-        # check if model performance improved
-        model_performance = -avg_val_loss
-        if model_performance > best_model_performance:
-            print(f"New best model performance. Saving model to {log_path/'best_model.pth'}")
-            torch.save(model.cpu().state_dict(), log_path / "best_model.pth")
-
         # every n epochs, check the accuracy of the model outputs on the val dataset
         if epoch % n_acc == 0:
             print(f"Validation: Average Loss: {val_loss/len(val_loader):.4f}")
             val_acc = check_accuracy(model, val_ds)
             # log to tensorboard
             tb_logger.add_scalar("Val accuracy", val_acc*100, epoch)
-            print(f"Validation: Accuracy: {val_acc*100:2f}")
+            print(f"Validation: Accuracy: {val_acc*100:.2f}%")
+        
+            # measure model performance as the running average of the accuracy of
+            # last 5*n_acc epochs
+            model_perf_running_mean.append(val_acc)
+            model_perf = sum(model_perf_running_mean) / len(model_perf_running_mean)
+            if model_perf > best_model_perf:
+                print(f"New best model performance. Saving model to {log_path/'best_model.pth'}")
+                torch.save(model.cpu().state_dict(), log_path / "best_model.pth")
+                best_model_perf = model_perf
 
 
 @hydra.main(version_base=None, config_name="config", config_path=".")
