@@ -3,6 +3,10 @@
 
 description: "Training configs for Digit-sum RNN"
 
+model:
+  model_type: rnn
+  hidden_size: 128
+
 train:
   dataset_path: null
   n_epochs: 100
@@ -12,13 +16,10 @@ train:
   log_path: logs
   run_name: null
   weight_decay: null
-  model_type: rnn
-  hidden_size: 128
 
 test:
   dataset_path: null
   model_path: null
-  model_type: rnn
   sequence: null
 
 # --- Hydra settings ---
