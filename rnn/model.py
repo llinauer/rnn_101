@@ -17,8 +17,10 @@ class DigitSumModel(nn.Module):
         # define layers
         if model_type == "lstm":
             self.rnn = nn.LSTM(input_size, hidden_size, batch_first=True)
-        else:
+        elif model_type == "rnn":
             self.rnn = nn.RNN(input_size, hidden_size, batch_first=True)
+        else:
+            raise ValueError("Invalid model_type")
         self.h2o = nn.Linear(hidden_size, output_size)
 
     def forward(self, x, h_0=None):

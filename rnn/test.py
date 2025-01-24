@@ -37,11 +37,21 @@ def main(cfg: DictConfig) -> None:
     """ main function, check configs, load model and dataset """
 
     # check for model type
-    if not cfg.test.model_type or not isinstance(cfg.test.model_type, str):
+    if not cfg.model.model_type or not isinstance(cfg.model.model_type, str):
         print("Please provide valid model type with the test.model_type argument!"
               " Options: [rnn, lstm]")
         return
-    model_type = cfg.test.model_type
+    model_type = cfg.model.model_type
+    
+    # check if hidden size is given, is an integer and not too big or too small
+    if not cfg.model.hidden_size:
+        print("No train.hidden_size argument given, using default value of 128")
+        hidden_size = 128
+
+    if not isinstance(cfg.model.hidden_size, int) or not 16 <= cfg.model.hidden_size <= 256:
+        print("train.hidden_size argument must be an integer between 16 and 256!")
+        return
+    hidden_size = cfg.model.hidden_size
 
     # check if both dataset_path and string are provided
     if cfg.test.dataset_path is not None and cfg.test.sequence is not None:
@@ -76,13 +86,13 @@ def main(cfg: DictConfig) -> None:
     if not Path(cfg.test.model_path).exists():
         print(f"Model at {cfg.test.model_path} does not exist")
         return
-
     # load model
-    model = DigitSumModel(VOCAB_SIZE, 128, VOCAB_SIZE, model_type=model_type)
+    model = DigitSumModel(VOCAB_SIZE, hidden_size, VOCAB_SIZE, model_type=model_type)
     try:
         model.load_state_dict(torch.load(cfg.test.model_path, weights_only=True))
-    except:
-        print(f"Could not load model at path {cfg.test.model_path}")
+    except Exception as e:
+        print(f"Could not load model at path {cfg.test.model_path}.")
+        print(f"Error: {e}")
 
     # if a test_sequence is provided, run the model on it
     if test_sequence is not None:

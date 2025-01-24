@@ -160,21 +160,21 @@ def main(cfg: DictConfig) -> None:
     log_path = Path(cfg.train.log_path)
 
     # check if hidden size is given, is an integer and not too big or too small
-    if not cfg.train.hidden_size:
+    if not cfg.model.hidden_size:
         print("No train.hidden_size argument given, using default value of 128")
         hidden_size = 128
 
-    if not isinstance(cfg.train.hidden_size, int) or not 16 <= cfg.train.hidden_size <= 256:
+    if not isinstance(cfg.model.hidden_size, int) or not 16 <= cfg.model.hidden_size <= 256:
         print("train.hidden_size argument must be an integer between 16 and 256!")
         return
-    hidden_size = cfg.train.hidden_size
+    hidden_size = cfg.model.hidden_size
 
     # check for model type
-    if not cfg.train.model_type or not isinstance(cfg.train.model_type, str):
+    if not cfg.model.model_type or not isinstance(cfg.model.model_type, str) or cfg.model.model_type not in ["lstm", "rnn"]:
         print("Please provide valid model type with the train.model_type argument!"
               " Options: [rnn, lstm]")
         return
-    model_type = cfg.train.model_type
+    model_type = cfg.model.model_type
 
     # check if weight decay should be used
     if cfg.train.weight_decay is not None:
