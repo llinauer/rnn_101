@@ -64,3 +64,27 @@ You could for example create a network with as many input neurons as there are e
 But then you could not handle sequences of different length. You could condense the sequence down into a fixed-length object, but
 then you would loose the sequential information altogether. So RNNs, clearly are a wildly different thing from "normal" NNs.
 
+## Data
+
+Now that we know what we are dealing with, let's take a quick look at the data.
+For the task at hand, the training data is quite easy to obtain. Just generate a bunch of strings of numbers,
+together with their sum. Done. The devil lies in the details of course, but we will get to that in a moment.
+Since I did not want to rent a beefy GPU machine and also did not want to spend too much time waiting for training
+to be finished, I decided to restrict data generation to sequences of length up to 4. Quick maths, shows,
+that this entails 10^4 training samples. Not overwhelming, but should be good enough for starters.
+The `create_dataset.py` script can be used to create such a dataset in the form of a .csv file.
+
+Of course, we can't just feed integers into a NN, so we need a way to represent numbers as tensors.
+One-hot-encoding is a neat and easy way to do this. The digits from 0 to 9, together with two special
+symbols EOS and EOA (which stands for end-of-sequence and end-of-answer, respectively), are encoded as 12 distinct 12-dimensional tensors.
+Each tensor containing a 1 in the respective dimension and all 0s otherwise.
+
+A quick remark about batching. Usually, batching is quite easy, since for standard NNs, all inputs are of the same shape.
+But for sequences of unequal length, the inputs actually differ in shape. To make matters worse, also the targets differ in shape.
+E.g. The input 1294 sums up to 16, but the input 1221 sums up to 6. Since pytorch can only handle batches with inputs of same shape and
+targets with same shape (but maybe different than input shape), I had to write my custom batching logic. This was actually the hardest part in 
+the whole project!
+Encoding, batching, data loading and other related functionalities can all be found in the `data.py` module.
+
+
+
