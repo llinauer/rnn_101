@@ -47,19 +47,19 @@ A different representation sheds some light on the matter.
 I added some additional info to this picture, but let's focus on the main difference.
 If you take the RNN from before, unpin the recurrent connections, make a copy of the whole network,
 place it next to itself and then re-attach the recurrent connection to the copy, then you have
-unfolded the RNN. We create exactly as many copies of the network, as we have elements in the input sequence.
+unfolded the RNN. You create exactly as many copies of the network, as you have elements in the input sequence.
 Note that the recurrent connections are exactly the same between each of the copies. In more technical terms,
-the weights (denoted here by R) are identical for each copy. So is the layer structure and also the
+the recurrent weights (denoted here by R) are identical for each copy. So is the layer structure and also the
 weights W, between input and hidden layer and V, between hidden and output layer.
-With this unfolded RNN, we can feed in the input sequence, one element at a time, to get hidden states a and
-outputs y for each element.
-And that's basically it. We now have a NN that can process a sequence. And the cool thing is, we can
-use all the normal tools for training this NN. We just need some loss function that measures
+With this unfolded RNN, you can feed in the input sequence, one element at a time, to get hidden states $a$ and
+outputs $y$ for each element.
+And that's basically it. You now have a NN that can process a sequence. And the cool thing is, you can
+use all the normal tools for training this NN. You just need some loss function that measures
 the difference between the NN outputs y and some targets and let it train on some data.
 Of course, the internals of how to calculate gradients and update the weights are a little different,
 but that need not be of concern here.
 
-As a quick exercise, think of you would do the same task without recurrent connections.
+As a quick exercise, think of how you would do the same task without recurrent connections.
 You could for example create a network with as many input neurons as there are elements in the sequence.
 But then you could not handle sequences of different length. You could condense the sequence down into a fixed-length object, but
 then you would loose the sequential information altogether. So RNNs, clearly are a wildly different thing from "normal" NNs.
@@ -74,7 +74,7 @@ to be finished, I decided to restrict data generation to sequences of length up 
 that this entails 10^4 training samples. Not overwhelming, but should be good enough for starters.
 The `create_dataset.py` script can be used to create such a dataset in the form of a .csv file.
 
-Of course, we can't just feed integers into a NN, so we need a way to represent numbers as tensors.
+Of course, you can't just feed integers into a NN, so you need a way to represent numbers as tensors.
 One-hot-encoding is a neat and easy way to do this. The digits from 0 to 9, together with two special
 symbols EOS and EOA (which stands for end-of-sequence and end-of-answer, respectively), are encoded as 12 distinct 12-dimensional tensors.
 Each tensor containing a 1 in the respective dimension and all 0s otherwise.
@@ -85,6 +85,16 @@ E.g. The input 1294 sums up to 16, but the input 1221 sums up to 6. Since pytorc
 targets with same shape (but maybe different than input shape), I had to write my custom batching logic. This was actually the hardest part in 
 the whole project!
 Encoding, batching, data loading and other related functionalities can all be found in the `data.py` module.
+
+
+## Training
+
+Now for the actual training. The training logic is quite straightforward and does not differ from how you would train a feed-forward NN.
+First, we instantiate our RNN model, then load the data and do some house-keeping for the logs. The training loop also does not do anything fancy; loop over the train dataset in batches (a torch DataLoader object), calculate the loss, backprop the gradients, etc.
+The loss function is just Cross Entropy implemented in a slightly different way to handle one-hot encodings. The only special thing here is our validation metric. I don't just calculate the loss on the validation dataset (which is interesting, but does not really tell you how good the model is performing), but also the accuracy. And to calculate the accuracy, you actually need to unfold the RNN. This is done with the `sample_from_rnn` function in `misc.py`. And that's it. We can now let our RNNs loose!
+
+## Results
+
 
 
 
