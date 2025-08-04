@@ -120,11 +120,19 @@ Encoding, batching, data loading and other related functionalities can all be fo
 
 Now for the actual training. The training logic is quite straightforward and does not differ from how you would train a feed-forward NN.
 First, we instantiate our RNN model, then load the data and do some house-keeping for the logs. The training loop also does not do anything fancy; loop over the train dataset in batches (a torch DataLoader object), calculate the loss, backprop the gradients, etc.
-The loss function is just Cross Entropy implemented in a slightly different way to handle one-hot encodings. The only special thing here is our validation metric. I don't just calculate the loss on the validation dataset (which is interesting, but does not really tell you how good the model is performing), but also the accuracy. And to calculate the accuracy, you actually need to unfold the RNN. This is done with the `sample_from_rnn` function in `misc.py`. And that's it. We can now let our RNNs loose!
+The loss function is just Cross Entropy implemented in a slightly different way to handle one-hot encodings.
+ The only special thing here is our validation metric. I don't just calculate the loss on the validation dataset (which is interesting, but does not really tell you how good the model is performing), but also the accuracy. And to calculate the accuracy, you actually need to unfold the RNN. This is done with the `sample_from_rnn` function in `misc.py`. And that's it. We can now let our RNNs loose!
 
 Training code is in the `train.py`. You can run it with:
 
-    python3 train.py 
+    python3 rnn/train.py
+
+There are several command-line arguments for setting training parameters, hyper-parameters or paths.
+E.g. you can choose the number of training epochs via the train.n_epochs arg:
+
+    python3 rnn/train.py train.n_epochs=300
+
+For a complete set of command-line args, see [Configs](#configs)
 
 <br/>
 <br/>
@@ -148,7 +156,9 @@ As you can see the start is much more noisy, but at the end we arrive at nice an
 Now this already tells us much more. Namely, that the RNN sucks pretty hard at this task! A whooping 23% accuracy at the end of training. Meaning, that the RNN could determine the digit sum for only 23% of the sequences in the validation set. (As a side note: I know that the axis in these plots are not labeled. Unfortunately, tensorboard, where I got these plots from, does not label the axis very nicely.)
  Luckily, there is a very simple remedy. Any time you work with RNNs, there is an (almost) guaranteed way to improve on performance. And that is, to replace your RNNs with LSTMs. LSTM stands for Long Short-Term Memory and is an RNN architecture invented by Sepp Hochreiter (Go Sepp!) et.al. already back in the 1990s.
 I won't go into the details of how LSTMs actually work (maybe that is something for a later project). For now, think of LSTMs simply as an RNN that has more complex hidden units. The principal is the same however, you unfold the LSTM in time just as described above.
-Training an LSTM is no different from training an ordinary RNN.
+Training an LSTM is no different from training an ordinary RNN, you can just select it via the CL arg:
+
+    model.model_type=lstm
 
 
 ![LSTM +  RNN Val ACC](results/lstm_rnn_300_epochs_val_acc.jpg)
@@ -156,17 +166,62 @@ Training an LSTM is no different from training an ordinary RNN.
 Wow, that was easy. Just by switching the RNN with an LSTM (all hyperparemters left unchanged), we get an accuracy of around 47%. More than twice as good!.
 
 
-## Play with hyperparameters
+## Play with hyper-parameters
+
+When you run `train.py` with default hyper-parameters, it will choose a hidden size of 128, a learning rate of $10^{-3}$ and a batch size of 32, without any regularization.
+You can play around with hyper-parameters by giving the appropriate configs as CL args.
+
+For example, we can vary the batch size:
+
+![BS variation](results/bs_variation.jpg)
+
+It seems that a batch size of 64 tends to work very good. You should keep in mind, that these are just single sample estimates, so the results should be taken with a grain of salt.
+
+Or we can tinker with the hidden size:
+
+![HS variation](results/hs_variation.jpg)
+
+The run with hidden size = 64 and batch size = 32 is especially impressive, because it achieved a final validation accuracy of almost 74% !!
 
 
+## Going further
 
+Now that we did train a promising RNN (LSTM) for predicting the digit sum of 4-digit sequences, we can check if it generalizes.
+I created a dataset, that consists of only sequences of 5 digits for this purpose. Remember that the RNN was only trained on sequences of up to length 4. It never saw a longer sequence in its life. So by runing it on longer sequences, we can tap into its generalization performance.
+The `test.py` script can be fed with the trained weights of an RNN and a either a specific sequence to run it on, or a complete dataset of sequences. Be careful to use the correct `model.model_type` and `model.hidden_size` arguments when running.
+
+For example:
+
+```bash
+python3 rnn/test.py model.model_type=lstm model.hidden_size=64 test.model_path=logs/seq_len_4_lstm_hs_64_bs_32_lr_1e-3_300_epochs/best_model.pth test.sequence=12345
+
+Test model on input:
+12345
+Answer: 1 3 EOA, False
+```
+
+Oh oh, that already does not look very good. The answer should be 15, but our model predicted 13.
+We can check the generalization performance by running it on the full 5-digit sequence dataset:
+
+```bash
+python3 rnn/test.py model.model_type=lstm model.hidden_size=64 test.dataset_path=data/seq_len_5_only.csv test.model_path=logs/seq_len_4_lstm_hs_64_bs_32_lr_1e-3_300_epochs/best_model.pth
+
+...
+Accuracy on dataset: data/seq_len_5_only.csv
+3.44%
+```
+
+Wow, this model really does not generalize well.
+This is not an uncommon theme in sequence modelling. Extrapolating to longer sequences than seen in training is quite difficult for RNNs.
+What could we do to improve it?
+We could e.g. make the architecture more expressive (e.g. multi-layer RNNs) or we could play around with regularization to prevent overfitting on specific sequence lengths. Have fun experimenting.
 
 <br/>
 <br/>
 
 ## Configs
 
-The customizable configs (including training hyperparameters) can be found in the `config.yaml`:
+The customizable configs (including hyper-parameters) can be found in the `config.yaml`.
 
 ```yaml
 description: "Training configs for Digit-sum RNN"
@@ -180,7 +235,7 @@ train:
   n_epochs: 100
   learning_rate: 1e-3
   train_split_fraction: 0.8
-  batch_size: 64
+  batch_size: 32
   log_path: logs
   run_name: null
   weight_decay: null
@@ -191,7 +246,8 @@ test:
   sequence: null
 ```
 
+I use hydra for working with configs in this repo.
 You can set each of these configs via the command-line by giving the nested config, e.g.:
 
-    train.n_epochs=200
+    python3 rnn/train.py train.n_epochs=300
 
