@@ -2,7 +2,7 @@
 
 ## TLDR
 
-With this repo, you can train a RNN that predicts the sum of a sequence of digits.
+With this repo, you can train an RNN that predicts the sum of a sequence of digits.
 
 ### Setup
 
@@ -36,7 +36,7 @@ is by doing something. So, in this repo, i am actually doing something with RNNs
 
 ## The setup
 
-The first thing you need, is a task that an RNN will actually help you with solving.
+The first thing we need, is a task that an RNN will actually help us with solving.
 I came up with the following exercise:
 
 ![Task description](imgs/task_description.jpg)
@@ -62,7 +62,7 @@ as feed-forward NNs do, but also recurrently, within a layer.
 As can be seen in this picture, really the only difference between a plain-old NN and an RNN are the 
 recurrent connections in the hidden layer. Note, that the single nodes in this picture can represent
 multiple, hundreds of nodes, I just did not want to draw more lines than necessary.
-So, in principle there is nothing to be afraid of. RNNs = NN + Recurrent connection.
+So, in principle there is nothing to be afraid of. RNNs = NN + Recurrent connections.
 But that does not really help (at least not me) with understanding why RNNs would be suited for sequential tasks.
 A different representation sheds some light on the matter.
 
@@ -79,7 +79,7 @@ With this unfolded RNN, you can feed in the input sequence, one element at a tim
 outputs $y$ for each element.
 And that's basically it. You now have a NN that can process a sequence. And the cool thing is, you can
 use all the normal tools for training this NN. You just need some loss function that measures
-the difference between the NN outputs y and some targets and let it train on some data.
+the difference between the NN outputs $y$ and some targets and let it train on some data.
 Of course, the internals of how to calculate gradients and update the weights are a little different,
 but that need not be of concern here.
 
@@ -119,7 +119,7 @@ Encoding, batching, data loading and other related functionalities can all be fo
 ## Training
 
 Now for the actual training. The training logic is quite straightforward and does not differ from how you would train a feed-forward NN.
-First, we instantiate our RNN model, then load the data and do some house-keeping for the logs. The training loop also does not do anything fancy; loop over the train dataset in batches (a torch DataLoader object), calculate the loss, backprop the gradients, etc.
+First, we instantiate our RNN model, then load the data and do some house-keeping for the logs. The training loop also does not do anything fancy; loop over the train dataset (a torch DataLoader object) in batches, calculate the loss, backprop the gradients, etc.
 The loss function is just Cross Entropy implemented in a slightly different way to handle one-hot encodings.
  The only special thing here is our validation metric. I don't just calculate the loss on the validation dataset (which is interesting, but does not really tell you how good the model is performing), but also the accuracy. And to calculate the accuracy, you actually need to unfold the RNN. This is done with the `sample_from_rnn` function in `misc.py`. And that's it. We can now let our RNNs loose!
 
@@ -132,7 +132,7 @@ E.g. you can choose the number of training epochs via the train.n_epochs arg:
 
     python3 rnn/train.py train.n_epochs=300
 
-For a complete set of command-line args, see [Configs](#configs)
+For a complete set of CL-args, see [Configs](#configs)
 
 <br/>
 <br/>
@@ -153,10 +153,10 @@ As you can see the start is much more noisy, but at the end we arrive at nice an
 
 ![RNN Val ACC](results/rnn_300_epochs_val_acc.jpg)
 
-Now this already tells us much more. Namely, that the RNN sucks pretty hard at this task! A whooping 23% accuracy at the end of training. Meaning, that the RNN could determine the digit sum for only 23% of the sequences in the validation set. (As a side note: I know that the axis in these plots are not labeled. Unfortunately, tensorboard, where I got these plots from, does not label the axis very nicely.)
+Now this already tells us much more. Namely, that the RNN sucks pretty hard at this task! A whooping 23% accuracy at the end of training. Meaning, that the RNN could determine the digit sum for only 23% of the sequences in the validation set. (As a side note: I know that the axes in these plots are not labeled. Unfortunately, tensorboard, where I got these plots from, does not label the axes very nicely.)
  Luckily, there is a very simple remedy. Any time you work with RNNs, there is an (almost) guaranteed way to improve on performance. And that is, to replace your RNNs with LSTMs. LSTM stands for Long Short-Term Memory and is an RNN architecture invented by Sepp Hochreiter (Go Sepp!) et.al. already back in the 1990s.
 I won't go into the details of how LSTMs actually work (maybe that is something for a later project). For now, think of LSTMs simply as an RNN that has more complex hidden units. The principal is the same however, you unfold the LSTM in time just as described above.
-Training an LSTM is no different from training an ordinary RNN, you can just select it via the CL arg:
+Training an LSTM is no different from training an ordinary RNN, you can just select it via the CL-arg:
 
     model.model_type=lstm
 
@@ -168,8 +168,8 @@ Wow, that was easy. Just by switching the RNN with an LSTM (all hyperparemters l
 
 ## Play with hyper-parameters
 
-When you run `train.py` with default hyper-parameters, it will choose a hidden size of 128, a learning rate of $10^{-3}$ and a batch size of 32, without any regularization.
-You can play around with hyper-parameters by giving the appropriate configs as CL args.
+When you run `train.py` with default configs, it will choose a hidden size of 128, a learning rate of $10^{-3}$ and a batch size of 32, without any regularization.
+You can play around with hyper-parameters by giving the appropriate configs as CL-args.
 
 For example, we can vary the batch size:
 
@@ -186,8 +186,8 @@ The run with hidden size = 64 and batch size = 32 is especially impressive, beca
 
 ## Going further
 
-Now that we did train a promising RNN (LSTM) for predicting the digit sum of 4-digit sequences, we can check if it generalizes.
-I created a dataset, that consists of only sequences of 5 digits for this purpose. Remember that the RNN was only trained on sequences of up to length 4. It never saw a longer sequence in its life. So by runing it on longer sequences, we can tap into its generalization performance.
+Now that we did train a promising RNN (LSTM) for predicting the sum of 4-digit sequences, we can check if it generalizes to longer sequences.
+I created a dataset, that consists of only sequences of 5 digits for this purpose. Remember that the RNN never saw a sequence that long in its whole life. So by runing it on longer sequences, we can tap into its generalization performance.
 The `test.py` script can be fed with the trained weights of an RNN and a either a specific sequence to run it on, or a complete dataset of sequences. Be careful to use the correct `model.model_type` and `model.hidden_size` arguments when running.
 
 For example:
@@ -200,8 +200,7 @@ Test model on input:
 Answer: 1 3 EOA, False
 ```
 
-Oh oh, that already does not look very good. The answer should be 15, but our model predicted 13.
-We can check the generalization performance by running it on the full 5-digit sequence dataset:
+Hmm, that already does not look very good. The answer should be 15, but our model predicted 13. But this was only one example, let's run it on all sequences of length 5 and see if it was just unlucky.
 
 ```bash
 python3 rnn/test.py model.model_type=lstm model.hidden_size=64 test.dataset_path=data/seq_len_5_only.csv test.model_path=logs/seq_len_4_lstm_hs_64_bs_32_lr_1e-3_300_epochs/best_model.pth
@@ -211,10 +210,14 @@ Accuracy on dataset: data/seq_len_5_only.csv
 3.44%
 ```
 
-Wow, this model really does not generalize well.
+Nope, it was not. The model is suddenly really bad in calculating sums.
 This is not an uncommon theme in sequence modelling. Extrapolating to longer sequences than seen in training is quite difficult for RNNs.
 What could we do to improve it?
-We could e.g. make the architecture more expressive (e.g. multi-layer RNNs) or we could play around with regularization to prevent overfitting on specific sequence lengths. Have fun experimenting.
+There are some obvious and some less obvious things we could try.
+An obvious thing would be to also include longer sequences in the training data. What also is often a good idea is to make the model bigger (and therefore hopefully better) by adding additional layers (so-called multi-layer RNNs).
+An often overlooked possibility would be to play around with regularization to prevent overfitting on specific sequence lengths. 
+Dropout or weight decay are two possible strategies here.
+Have fun experimenting.
 
 <br/>
 <br/>
